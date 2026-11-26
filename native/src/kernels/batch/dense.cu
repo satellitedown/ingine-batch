@@ -1,4 +1,5 @@
 #include "kernels/batch/dense.h"
+#include "kernels/draft/rng.h"
 
 #include <stdexcept>
 #include <string>
@@ -54,8 +55,7 @@ __device__ __forceinline__ std::uint64_t row_key(std::uint64_t seed, int row) {
 __device__ __forceinline__ float pick_key(float l, bool greedy, float inv_t, std::uint64_t rkey, int v) {
   float key = 30.f * tanhf(bf16r(l) / 30.f);
   if (!greedy) {
-    const float u = (float(mix64(rkey ^ std::uint64_t(v)) >> 40) + 0.5f) * (1.f / 16777216.f);
-    key = key * inv_t - __logf(-__logf(u));
+    key = key * inv_t + draft::gumbel_from_bits(mix64(rkey ^ std::uint64_t(v)));
   }
   return key;
 }
